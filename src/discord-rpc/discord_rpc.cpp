@@ -288,7 +288,7 @@ extern "C" DISCORD_EXPORT void Discord_Initialize(const LPCWSTR fileName, const 
                                                   int autoRegister,
                                                   const char* optionalSteamId)
 {
-    hModule = LoadLibrary(fileName);
+    hModule = LoadLibraryW(fileName);
     IoThread = new (std::nothrow) IoThreadHolder();
     if (IoThread == nullptr) {
         return;

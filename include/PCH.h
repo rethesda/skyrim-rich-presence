@@ -65,7 +65,7 @@ namespace stl
 }
 
 namespace logger = SKSE::log;
-namespace WinAPI = SKSE::WinAPI;
+namespace WinAPI = REX::W32;
 
 namespace util
 {
@@ -122,8 +122,8 @@ extern "C" DLLEXPORT  constinit auto SKSEPlugin_Version = []() noexcept {
 	SKSE::PluginVersionData v;
 	v.PluginName(Plugin::NAME.data());
 	v.PluginVersion(Plugin::VERSION);
-	v.UsesAddressLibrary(true);
-	v.HasNoStructUse();
+	v.UsesAddressLibrary();
+	v.UsesNoStructs();
 	return v;
 }();
 

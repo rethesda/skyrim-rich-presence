@@ -1,7 +1,7 @@
 #include "RichPresence.h"
 
 #include <SimpleIni.h>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 void RichPresence::Load()
 {
@@ -59,8 +59,11 @@ void RichPresence::CacheMapMarkers()
 		}
 		std::list<RE::TESObjectREFR*> mapMarkers;
 		if (worldSpace->persistentCell) {
-			worldSpace->persistentCell->ForEachReference([&](RE::TESObjectREFR& a_ref) {
-				if (auto marker = a_ref.extraList.GetByType<RE::ExtraMapMarker>()) {
+			worldSpace->persistentCell->ForEachReference([&](RE::TESObjectREFR* a_ref) {
+				if (!a_ref) {
+					return RE::BSContainer::ForEachResult::kContinue;
+				}
+				if (auto marker = a_ref->extraList.GetByType<RE::ExtraMapMarker>()) {
 					if (auto name = marker->mapData->locationName.GetFullName()) {
 						logger::debug("Marker {} {}", marker->mapData->type.underlying(), name);
 					}
@@ -68,7 +71,7 @@ void RichPresence::CacheMapMarkers()
 						logger::debug("Marker {} Unknown", marker->mapData->type.underlying());
 					}
 					if (marker->mapData->type.underlying() < 59) {
-						mapMarkerCache.insert({ &a_ref, (Marker)marker->mapData->type.underlying() });
+						mapMarkerCache.insert({ a_ref, (Marker)marker->mapData->type.underlying() });
 					}
 				}
 				return RE::BSContainer::ForEachResult::kContinue;
@@ -134,10 +137,13 @@ void RichPresence::UpdateMarker()
 
 		auto position = interior ? player->GetPlayerRuntimeData().exteriorPosition : player->GetPosition();
 		for (auto worldSpace = cached; worldSpace; worldSpace = worldSpace->parentWorld) {
-			worldSpace->persistentCell->ForEachReferenceInRange(position, markerMinDistance, [&](RE::TESObjectREFR& a_ref) {
-				if (a_ref.GetBaseObject() == Skyrim_MarkerBase) {
-					if (auto marker = a_ref.extraList.GetByType<RE::ExtraMapMarker>()) {
-						auto distance = a_ref.GetPosition().GetDistance(position);
+			worldSpace->persistentCell->ForEachReferenceInRange(position, markerMinDistance, [&](RE::TESObjectREFR* a_ref) {
+				if (!a_ref) {
+					return RE::BSContainer::ForEachResult::kContinue;
+				}
+				if (a_ref->GetBaseObject() == Skyrim_MarkerBase) {
+					if (auto marker = a_ref->extraList.GetByType<RE::ExtraMapMarker>()) {
+						auto distance = a_ref->GetPosition().GetDistance(position);
 						if (auto name = marker->mapData->locationName.fullName.c_str()) {
 							if (strcmp(name, locationName.c_str()) == 0) {
 								closestDistance = 0;
@@ -145,7 +151,7 @@ void RichPresence::UpdateMarker()
 									type = (Marker)marker->mapData->type.underlying();
 								}
 								else {
-									auto it = mapMarkerCache.find(&a_ref);
+									auto it = mapMarkerCache.find(a_ref);
 									if (it != mapMarkerCache.end()) {
 										type = (*it).second;
 									}
@@ -161,7 +167,7 @@ void RichPresence::UpdateMarker()
 									type = (Marker)marker->mapData->type.underlying();
 								}
 								else {
-									auto it = mapMarkerCache.find(&a_ref);
+									auto it = mapMarkerCache.find(a_ref);
 									if (it != mapMarkerCache.end()) {
 										type = (*it).second;
 									}
@@ -314,7 +320,7 @@ void RichPresence::UpdateFlavour()
 		}
 		else if (ui->IsMenuOpen(RE::GiftMenu::MENU_NAME)) {
 			bool named = false;
-			if (auto ref = RE::TESObjectREFR::LookupByHandle(RE::GiftMenu::GetTargetRefHandle())) {
+			if (auto ref = RE::TESObjectREFR::LookupByHandle(RE::GiftMenu::GetReceiverRefHandle())) {
 				if (auto name = ref->GetName()) {
 					flavour = std::format("Giving gift to {}", name);
 					named = true;
